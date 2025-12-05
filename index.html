@@ -95,6 +95,7 @@
             <div>
                 <h3 class="text-emerald-800 font-bold text-lg">অ্যাডমিন ড্যাশবোর্ড</h3>
                 <p class="text-sm text-emerald-600">মোট মিথ সংখ্যা: <span id="totalMythsCount">0</span> টি</p>
+                <p id="connectionStatus" class="text-xs text-orange-500 hidden">সংযোগ স্থাপন হচ্ছে...</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="seedDatabase()" class="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-50 transition" title="ডাটাবেস রিসেট/সিড করুন (৫০টি মিথ যুক্ত করুন)">
@@ -289,6 +290,8 @@
 
         // --- Auth Logic ---
         async function initAuth() {
+            // Show status
+            document.getElementById('connectionStatus').classList.remove('hidden');
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -308,7 +311,14 @@
         onAuthStateChanged(auth, (currentUser) => {
             user = currentUser;
             if (user) {
+                document.getElementById('connectionStatus').innerText = "সংযুক্ত";
+                document.getElementById('connectionStatus').classList.add('text-emerald-500');
+                document.getElementById('connectionStatus').classList.remove('text-orange-500');
+                setTimeout(() => document.getElementById('connectionStatus').classList.add('hidden'), 2000);
                 loadMyths();
+            } else {
+                document.getElementById('connectionStatus').classList.remove('hidden');
+                document.getElementById('connectionStatus').innerText = "সংযোগ বিচ্ছিন্ন";
             }
         });
 
@@ -316,6 +326,7 @@
 
         // --- Firestore Logic ---
         function loadMyths() {
+            if (!user) return;
             const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'myths'));
             
             onSnapshot(q, (snapshot) => {
@@ -517,6 +528,7 @@
 
         // --- CRUD Operations ---
         window.deleteMyth = async (id) => {
+            if (!auth.currentUser) return alert("অপেক্ষা করুন, লগইন হচ্ছে...");
             if (!confirm("আপনি কি নিশ্চিত এই মিথটি ডিলিট করতে চান?")) return;
             try {
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'myths', id));
@@ -546,7 +558,7 @@
 
         document.getElementById('mythForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!user) return alert("কানেকশন নেই!");
+            if(!auth.currentUser) return alert("অপেক্ষা করুন, সার্ভারের সাথে সংযোগ স্থাপন হচ্ছে...");
 
             const id = document.getElementById('editMythId').value;
             const data = {
@@ -566,7 +578,7 @@
                 window.closeModal('editModal');
             } catch (error) {
                 console.error("Save error:", error);
-                alert("সেভ করা যায়নি!");
+                alert("সেভ করা যায়নি! আপনার পারমিশন নেই।");
             }
         });
 
@@ -584,6 +596,10 @@
 
         // --- Seed DB Function (50 Myths) ---
         window.seedDatabase = async () => {
+            if (!auth.currentUser) {
+                alert("দয়া করে অপেক্ষা করুন, সার্ভারের সাথে সংযোগ স্থাপন হচ্ছে...");
+                return;
+            }
             if(!confirm("আপনি কি নিশ্চিত ডাটাবেস রিসেট করে ৫০টি নতুন মিথ যুক্ত করতে চান? এটি করতে একটু সময় লাগতে পারে।")) return;
             
             const FIFTY_MYTHS = [
