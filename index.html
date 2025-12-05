@@ -95,7 +95,9 @@
             <div>
                 <h3 class="text-emerald-800 font-bold text-lg">অ্যাডমিন ড্যাশবোর্ড</h3>
                 <p class="text-sm text-emerald-600">মোট মিথ সংখ্যা: <span id="totalMythsCount">0</span> টি</p>
-                <p id="connectionStatus" class="text-xs text-orange-500 hidden">সংযোগ স্থাপন হচ্ছে...</p>
+                <p id="connectionStatus" class="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                    <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span> সংযোগ স্থাপন হচ্ছে...
+                </p>
             </div>
             <div class="flex gap-3">
                 <button onclick="seedDatabase()" class="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-50 transition" title="ডাটাবেস রিসেট/সিড করুন (৫০টি মিথ যুক্ত করুন)">
@@ -277,8 +279,14 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Environment handling for Gemini App ID
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Environment handling for App ID
+        // Fix: Use a persistent unique ID for local/public usage to avoid permission errors on 'default-app-id'
+        let appId = typeof __app_id !== 'undefined' ? __app_id : localStorage.getItem('custom_app_id');
+        if (!appId) {
+            // Generate a random ID if not present (for local/deployed use) and save it
+            appId = 'app-' + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('custom_app_id', appId);
+        }
 
         // State
         let myths = [];
@@ -311,10 +319,11 @@
         onAuthStateChanged(auth, (currentUser) => {
             user = currentUser;
             if (user) {
-                document.getElementById('connectionStatus').innerText = "সংযুক্ত";
-                document.getElementById('connectionStatus').classList.add('text-emerald-500');
-                document.getElementById('connectionStatus').classList.remove('text-orange-500');
-                setTimeout(() => document.getElementById('connectionStatus').classList.add('hidden'), 2000);
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.innerHTML = `<span class="w-2 h-2 bg-emerald-500 rounded-full"></span> সংযুক্ত`;
+                statusEl.classList.remove('text-orange-500');
+                statusEl.classList.add('text-emerald-500');
+                
                 loadMyths();
             } else {
                 document.getElementById('connectionStatus').classList.remove('hidden');
