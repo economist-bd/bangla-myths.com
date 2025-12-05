@@ -257,21 +257,20 @@
 
     <!-- Scripts -->
     <script type="module">
-        // Firebase Imports
+        // Firebase Imports (CDN for HTML usage)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config - Using dynamic config from environment
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyCDr8j4mCOZnygHnw8qnmHm_-5SasuqhvY",
-            authDomain: "sample-firebase-ai-app-e155b.firebaseapp.com",
-            databaseURL: "https://sample-firebase-ai-app-e155b-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "sample-firebase-ai-app-e155b",
-            storageBucket: "sample-firebase-ai-app-e155b.firebasestorage.app",
-            messagingSenderId: "189674121794",
-            appId: "1:189674121794:web:7c6d901ee3d882980e9bdb",
-            measurementId: "G-BCMZ2MYZT1"
+        // Firebase Config - UPDATED with User Provided Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHFsTRQT1eopfz8NG5ux__0QKgKCnoXOE",
+            authDomain: "support-94add.firebaseapp.com",
+            projectId: "support-94add",
+            storageBucket: "support-94add.firebasestorage.app",
+            messagingSenderId: "442252148032",
+            appId: "1:442252148032:web:0289cb5672b35d7a368ea5",
+            measurementId: "G-Z23BZJ6CQ7"
         };
 
         // Initialize Firebase
@@ -280,10 +279,9 @@
         const db = getFirestore(app);
         
         // Environment handling for App ID
-        // Fix: Use a persistent unique ID for local/public usage to avoid permission errors on 'default-app-id'
+        // Using a persistent unique ID for local/public usage to segregate data in the new DB
         let appId = typeof __app_id !== 'undefined' ? __app_id : localStorage.getItem('custom_app_id');
         if (!appId) {
-            // Generate a random ID if not present (for local/deployed use) and save it
             appId = 'app-' + Math.random().toString(36).substring(2, 9);
             localStorage.setItem('custom_app_id', appId);
         }
@@ -301,18 +299,13 @@
             // Show status
             document.getElementById('connectionStatus').classList.remove('hidden');
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Try anonymous login for the new config
+                await signInAnonymously(auth);
             } catch (error) {
                 console.error("Auth Error:", error);
-                try {
-                    await signInAnonymously(auth);
-                } catch (fallbackError) {
-                    console.error("Fallback Auth Error:", fallbackError);
-                }
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.innerText = "অথেনটিকেশন এরর! কনসোল চেক করুন।";
+                statusEl.classList.add('text-red-500');
             }
         }
 
@@ -336,6 +329,7 @@
         // --- Firestore Logic ---
         function loadMyths() {
             if (!user) return;
+            // Using the new DB instance
             const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'myths'));
             
             onSnapshot(q, (snapshot) => {
@@ -354,6 +348,9 @@
             }, (error) => {
                 console.error("Data fetch error:", error);
                 document.getElementById('loadingState').classList.add('hidden');
+                if (error.code === 'permission-denied') {
+                    alert("ডাটাবেস পারমিশন এরর! দয়া করে আপনার Firebase Console এ Firestore Rules চেক করুন।");
+                }
             });
         }
 
@@ -543,7 +540,11 @@
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'myths', id));
             } catch (e) {
                 console.error("Error deleting:", e);
-                alert("ডিলিট করা সম্ভব হয়নি।");
+                if(e.code === 'permission-denied') {
+                    alert("ডিলিট করা সম্ভব হয়নি। পারমিশন নেই (Firestore Rules চেক করুন)।");
+                } else {
+                    alert("ডিলিট করা সম্ভব হয়নি।");
+                }
             }
         };
 
@@ -587,7 +588,11 @@
                 window.closeModal('editModal');
             } catch (error) {
                 console.error("Save error:", error);
-                alert("সেভ করা যায়নি! আপনার পারমিশন নেই।");
+                if(error.code === 'permission-denied') {
+                    alert("সেভ করা সম্ভব হয়নি। পারমিশন নেই (Firestore Rules চেক করুন)।");
+                } else {
+                    alert("সেভ করা যায়নি!");
+                }
             }
         });
 
@@ -678,7 +683,11 @@
                 alert("ডাটাবেসে ৫০টি মিথ সফলভাবে যুক্ত করা হয়েছে!");
             } catch (e) {
                 console.error("Seeding failed:", e);
-                alert("ডাটা যুক্ত করা সম্ভব হয়নি। কনসোলে এরর চেক করুন।");
+                if(e.code === 'permission-denied') {
+                    alert("সিড করা সম্ভব হয়নি। পারমিশন নেই (Firestore Rules চেক করুন)।");
+                } else {
+                    alert("ডাটা যুক্ত করা সম্ভব হয়নি।");
+                }
             }
         };
 
