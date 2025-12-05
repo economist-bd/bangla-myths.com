@@ -1,13 +1,665 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>bangla-myths.com</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>বাংলার মিথ | Bangladeshi Myths Portal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .slider-image {
+            transition: opacity 1s ease-in-out;
+        }
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-white shadow-md border-b border-emerald-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <div class="bg-emerald-600 text-white p-2 rounded-lg">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-emerald-700 to-teal-500 bg-clip-text text-transparent">
+                        বাংলার মিথ
+                    </h1>
+                </div>
+
+                <div class="hidden md:flex items-center gap-4">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="মিথ খুঁজুন..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64 text-sm">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
+                    </div>
+
+                    <div id="authButtonContainer">
+                        <!-- Login/Logout button will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Slider -->
+    <div id="sliderContainer" class="relative w-full h-[400px] md:h-[500px] overflow-hidden bg-slate-900 group hidden">
+        <!-- Slider items will be injected here -->
+        
+        <!-- Controls -->
+        <button id="prevSlide" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition z-20">
+            <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        </button>
+        <button id="nextSlide" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition z-20">
+            <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        </button>
+        
+        <div id="sliderDots" class="absolute bottom-6 right-6 flex gap-2 z-20">
+            <!-- Dots will be injected here -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-12 flex-grow w-full">
+        
+        <!-- Admin Dashboard Bar -->
+        <div id="adminDashboard" class="hidden mb-8 flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-sm">
+            <div>
+                <h3 class="text-emerald-800 font-bold text-lg">অ্যাডমিন ড্যাশবোর্ড</h3>
+                <p class="text-sm text-emerald-600">মোট মিথ সংখ্যা: <span id="totalMythsCount">0</span> টি</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="seedDatabase()" class="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-50 transition" title="ডাটাবেস রিসেট/সিড করুন (৫০টি মিথ যুক্ত করুন)">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+                <button onclick="openModal('editModal', true)" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 shadow-md transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i> নতুন যোগ করুন
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-20">
+            <div class="animate-spin inline-block w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mb-2"></div>
+            <p class="text-slate-500">মিথ লোড হচ্ছে...</p>
+        </div>
+
+        <!-- Myths Grid -->
+        <div id="mythsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden">
+            <!-- Cards will be injected here -->
+        </div>
+
+        <!-- No Results -->
+        <div id="noResults" class="hidden text-center py-20">
+            <div class="inline-block p-4 bg-slate-100 rounded-full mb-4">
+                <i data-lucide="search" class="w-8 h-8 text-slate-400"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-700">কোনো মিথ পাওয়া যায়নি</h3>
+            <p class="text-slate-500 mt-2">অন্য কোনো শব্দ দিয়ে খুঁজুন</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h2 class="text-2xl font-bold text-white mb-4 tracking-tight">বাংলার মিথ</h2>
+            <p class="mb-8 max-w-lg mx-auto text-slate-400 leading-relaxed">
+                বাংলাদেশের আনাচে-কানাচে ছড়িয়ে থাকা হাজারো মিথ, কুসংস্কার আর লোকবিশ্বাস এক জায়গায়।<br/>
+                আমাদের সংস্কৃতি ও বিশ্বাসকে জানুন।
+            </p>
+            <div class="pt-8 border-t border-slate-800 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <span>&copy; ২০২৪ বাংলার মিথ পোর্টাল। সর্বস্বত্ব সংরক্ষিত।</span>
+                <span class="text-slate-600 flex items-center gap-1">
+                   Made with <span class="text-red-500">♥</span> in Bangladesh
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden justify-center items-center z-[100] p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-100">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 text-center">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white">অ্যাডমিন প্যানেল</h2>
+                <p class="text-emerald-100 text-sm mt-1">কন্টেন্ট এডিট করতে লগইন করুন</p>
+            </div>
+            
+            <form id="loginForm" class="p-8 pt-6">
+                <div id="loginError" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 text-center">
+                   ⚠️ ভুল ইমেইল বা পাসওয়ার্ড!
+                </div>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">ইমেইল</label>
+                        <input type="email" id="emailInput" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition bg-slate-50 focus:bg-white" placeholder="admin@example.com" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">পাসওয়ার্ড</label>
+                        <input type="password" id="passwordInput" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition bg-slate-50 focus:bg-white" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="closeModal('loginModal')" class="flex-1 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-600 transition">বন্ধ করুন</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-medium shadow-lg shadow-emerald-200 transition">প্রবেশ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit/Add Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden justify-center items-center z-[100] p-4 fade-in overflow-y-auto">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl border border-slate-100 relative my-8">
+            <button onclick="closeModal('editModal')" class="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <div class="p-8">
+                <h2 id="modalTitle" class="text-2xl font-bold text-slate-800 mb-6 pb-2 border-b">নতুন মিথ যোগ করুন</h2>
+                
+                <form id="mythForm" class="space-y-6">
+                    <input type="hidden" id="editMythId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="col-span-1 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">শিরোনাম</label>
+                                <input type="text" id="mythTitle" required class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="মিথের শিরোনাম...">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">ক্যাটাগরি</label>
+                                <select id="mythCategory" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <option value="">নির্বাচন করুন</option>
+                                    <option value="খাবার">খাবার ও পানীয়</option>
+                                    <option value="সংসার">সংসার ও ঘরোয়া</option>
+                                    <option value="প্রকৃতি">প্রকৃতি ও প্রাণী</option>
+                                    <option value="শিক্ষা">শিক্ষা ও পরীক্ষা</option>
+                                    <option value="ভাগ্য">ভাগ্য ও ভবিষ্যৎ</option>
+                                    <option value="যাত্রা">যাত্রা ও ভ্রমণ</option>
+                                    <option value="শারীরিক">শারীরিক ও স্বাস্থ্য</option>
+                                    <option value="ভৌতিক">ভৌতিক ও অলৌকিক</option>
+                                    <option value="অন্যান্য">অন্যান্য</option>
+                                </select>
+                            </div>
+
+                            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <input type="checkbox" id="mythIsSlider" class="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
+                                <label for="mythIsSlider" class="text-sm font-medium text-slate-700 cursor-pointer select-none">এটি স্লাইডারে দেখান (Featured)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1">ছবি (URL অথবা আপলোড)</label>
+                                <div class="relative w-full h-40 bg-slate-100 rounded-lg overflow-hidden border border-dashed border-slate-300 mb-2 group">
+                                    <img id="imagePreview" src="https://placehold.co/600x400?text=No+Image" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                         <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-white text-slate-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 cursor-pointer">
+                                           <i data-lucide="upload" class="w-4 h-4"></i> পরিবর্তন করুন
+                                         </button>
+                                    </div>
+                                </div>
+                                <input type="text" id="imageUrl" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs mb-2" placeholder="ছবির লিংক পেস্ট করুন...">
+                                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">বিস্তারিত বিবরণ</label>
+                        <textarea id="mythDescription" required rows="4" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="মিথ সম্পর্কে বিস্তারিত লিখুন..."></textarea>
+                    </div>
+
+                    <div class="pt-4 flex gap-3 border-t">
+                        <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-medium flex justify-center items-center gap-2 shadow-lg shadow-emerald-200 transition-transform active:scale-95">
+                            <i data-lucide="save" class="w-4 h-4"></i> <span id="submitBtnText">প্রকাশ করুন</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config - Using dynamic config from environment
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyCDr8j4mCOZnygHnw8qnmHm_-5SasuqhvY",
+            authDomain: "sample-firebase-ai-app-e155b.firebaseapp.com",
+            databaseURL: "https://sample-firebase-ai-app-e155b-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sample-firebase-ai-app-e155b",
+            storageBucket: "sample-firebase-ai-app-e155b.firebasestorage.app",
+            messagingSenderId: "189674121794",
+            appId: "1:189674121794:web:7c6d901ee3d882980e9bdb",
+            measurementId: "G-BCMZ2MYZT1"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Environment handling for Gemini App ID
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // State
+        let myths = [];
+        let filteredMyths = [];
+        let isAdmin = false;
+        let user = null;
+        let currentSlide = 0;
+        let sliderInterval = null;
+
+        // --- Auth Logic ---
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                try {
+                    await signInAnonymously(auth);
+                } catch (fallbackError) {
+                    console.error("Fallback Auth Error:", fallbackError);
+                }
+            }
+        }
+
+        onAuthStateChanged(auth, (currentUser) => {
+            user = currentUser;
+            if (user) {
+                loadMyths();
+            }
+        });
+
+        initAuth();
+
+        // --- Firestore Logic ---
+        function loadMyths() {
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'myths'));
+            
+            onSnapshot(q, (snapshot) => {
+                const loadedMyths = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                myths = loadedMyths;
+                
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('mythsGrid').classList.remove('hidden');
+                
+                filterAndRender();
+                initSlider();
+            }, (error) => {
+                console.error("Data fetch error:", error);
+                document.getElementById('loadingState').classList.add('hidden');
+            });
+        }
+
+        // --- UI Rendering ---
+        function filterAndRender() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            filteredMyths = myths.filter(myth => 
+                myth.title.toLowerCase().includes(searchTerm) ||
+                (myth.category && myth.category.toLowerCase().includes(searchTerm))
+            );
+
+            const grid = document.getElementById('mythsGrid');
+            const noResults = document.getElementById('noResults');
+            
+            grid.innerHTML = '';
+
+            if (filteredMyths.length === 0 && myths.length > 0) {
+                noResults.classList.remove('hidden');
+                grid.classList.add('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                grid.classList.remove('hidden');
+
+                filteredMyths.forEach(myth => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 group flex flex-col h-full relative";
+                    
+                    const sliderBadge = myth.isSlider ? 
+                        `<div class="absolute top-3 left-3 z-10 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> FEATURED</div>` : '';
+
+                    const adminControls = isAdmin ? 
+                        `<div class="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition duration-300 backdrop-blur-[2px] z-20">
+                            <button onclick="window.editMyth('${myth.id}')" class="p-3 bg-white text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition shadow-lg transform hover:scale-110"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                            <button onclick="window.deleteMyth('${myth.id}')" class="p-3 bg-white text-red-600 rounded-full hover:bg-red-500 hover:text-white transition shadow-lg transform hover:scale-110"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                         </div>` : '';
+
+                    card.innerHTML = `
+                        ${sliderBadge}
+                        <div class="relative h-48 overflow-hidden bg-slate-200">
+                            <img src="${myth.image || 'https://placehold.co/600x400?text=No+Image'}" alt="${myth.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=Image+Error'">
+                            <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-emerald-700 shadow-sm z-10">
+                                ${myth.category || 'অন্যান্য'}
+                            </div>
+                            ${adminControls}
+                        </div>
+                        <div class="p-5 flex-1 flex flex-col">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2 leading-snug group-hover:text-emerald-700 transition-colors">${myth.title}</h3>
+                            <p class="text-slate-600 text-sm leading-relaxed mb-4 flex-1 line-clamp-3">${myth.description}</p>
+                            <div class="pt-4 border-t border-slate-100 mt-auto flex justify-between items-center">
+                                <span class="text-xs text-slate-400 font-medium">ID: ...${myth.id.slice(-4)}</span>
+                                <button class="text-emerald-600 text-sm font-medium hover:underline">বিস্তারিত</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+            
+            lucide.createIcons();
+            
+            // Update Admin Dashboard
+            document.getElementById('totalMythsCount').innerText = myths.length;
+        }
+
+        // --- Slider Logic ---
+        function initSlider() {
+            const sliderContainer = document.getElementById('sliderContainer');
+            const sliderMyths = myths.filter(m => m.isSlider);
+            
+            if (sliderMyths.length === 0) {
+                sliderContainer.classList.add('hidden');
+                return;
+            }
+            
+            sliderContainer.classList.remove('hidden');
+            
+            if (sliderInterval) clearInterval(sliderInterval);
+            
+            const sliderContent = sliderMyths.map((myth, index) => `
+                <div class="slider-image absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}">
+                    <img src="${myth.image}" class="w-full h-full object-cover opacity-60">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent flex flex-col justify-end p-8 md:p-16">
+                        <span class="text-emerald-400 font-semibold tracking-wider mb-2 uppercase text-sm">ফিচারড মিথ</span>
+                        <h2 class="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight max-w-4xl drop-shadow-lg">${myth.title}</h2>
+                        <p class="text-slate-200 text-lg max-w-2xl line-clamp-2 drop-shadow-md">${myth.description}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            const dotsContent = sliderMyths.map((_, idx) => `
+                <button onclick="window.setSlide(${idx})" class="h-2 rounded-full transition-all ${currentSlide === idx ? 'bg-emerald-500 w-12' : 'bg-white/30 hover:bg-white/50 w-8'}"></button>
+            `).join('');
+
+            const prevBtn = document.getElementById('prevSlide').outerHTML;
+            const nextBtn = document.getElementById('nextSlide').outerHTML;
+            
+            sliderContainer.innerHTML = sliderContent + prevBtn + nextBtn + `<div class="absolute bottom-6 right-6 flex gap-2 z-20">${dotsContent}</div>`;
+            
+            document.getElementById('prevSlide').onclick = () => window.setSlide(currentSlide === 0 ? sliderMyths.length - 1 : currentSlide - 1);
+            document.getElementById('nextSlide').onclick = () => window.setSlide((currentSlide + 1) % sliderMyths.length);
+
+            lucide.createIcons();
+
+            sliderInterval = setInterval(() => {
+                window.setSlide((currentSlide + 1) % sliderMyths.length);
+            }, 4000);
+        }
+
+        window.setSlide = (index) => {
+            currentSlide = index;
+            initSlider();
+        };
+
+        // --- Search ---
+        document.getElementById('searchInput').addEventListener('input', filterAndRender);
+
+        // --- Admin/Auth UI ---
+        function updateAuthUI() {
+            const container = document.getElementById('authButtonContainer');
+            const dashboard = document.getElementById('adminDashboard');
+            
+            if (isAdmin) {
+                container.innerHTML = `
+                    <button onclick="window.handleLogout()" class="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-full hover:bg-red-100 transition text-sm font-medium">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> লগআউট
+                    </button>
+                `;
+                dashboard.classList.remove('hidden');
+            } else {
+                container.innerHTML = `
+                    <button onclick="window.openModal('loginModal')" class="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition shadow-sm text-sm font-medium">
+                        <i data-lucide="lock" class="w-4 h-4"></i> অ্যাডমিন
+                    </button>
+                `;
+                dashboard.classList.add('hidden');
+            }
+            lucide.createIcons();
+            filterAndRender();
+        }
+
+        // --- Modal Logic ---
+        window.openModal = (id, isNew = false) => {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+            
+            if (id === 'editModal' && isNew) {
+                document.getElementById('modalTitle').innerText = "নতুন মিথ যোগ করুন";
+                document.getElementById('submitBtnText').innerText = "প্রকাশ করুন";
+                document.getElementById('editMythId').value = "";
+                document.getElementById('mythForm').reset();
+                document.getElementById('imagePreview').src = "https://placehold.co/600x400?text=No+Image";
+            }
+        };
+
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        };
+
+        // --- Form Handlers ---
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            
+            if (email === "himel452@gmail.com" && pass === "Bank@200") {
+                isAdmin = true;
+                window.closeModal('loginModal');
+                document.getElementById('loginError').classList.add('hidden');
+                document.getElementById('loginForm').reset();
+                updateAuthUI();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        window.handleLogout = () => {
+            isAdmin = false;
+            updateAuthUI();
+        };
+
+        // --- CRUD Operations ---
+        window.deleteMyth = async (id) => {
+            if (!confirm("আপনি কি নিশ্চিত এই মিথটি ডিলিট করতে চান?")) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'myths', id));
+            } catch (e) {
+                console.error("Error deleting:", e);
+                alert("ডিলিট করা সম্ভব হয়নি।");
+            }
+        };
+
+        window.editMyth = (id) => {
+            const myth = myths.find(m => m.id === id);
+            if (!myth) return;
+
+            document.getElementById('modalTitle').innerText = "মিথ এডিট করুন";
+            document.getElementById('submitBtnText').innerText = "আপডেট করুন";
+            document.getElementById('editMythId').value = myth.id;
+            
+            document.getElementById('mythTitle').value = myth.title;
+            document.getElementById('mythCategory').value = myth.category;
+            document.getElementById('mythDescription').value = myth.description;
+            document.getElementById('imageUrl').value = myth.image || '';
+            document.getElementById('mythIsSlider').checked = myth.isSlider || false;
+            document.getElementById('imagePreview').src = myth.image || "https://placehold.co/600x400?text=No+Image";
+
+            window.openModal('editModal');
+        };
+
+        document.getElementById('mythForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(!user) return alert("কানেকশন নেই!");
+
+            const id = document.getElementById('editMythId').value;
+            const data = {
+                title: document.getElementById('mythTitle').value,
+                category: document.getElementById('mythCategory').value,
+                description: document.getElementById('mythDescription').value,
+                image: document.getElementById('imageUrl').value,
+                isSlider: document.getElementById('mythIsSlider').checked
+            };
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'myths', id), data);
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'myths'), data);
+                }
+                window.closeModal('editModal');
+            } catch (error) {
+                console.error("Save error:", error);
+                alert("সেভ করা যায়নি!");
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    document.getElementById('imageUrl').value = reader.result;
+                    document.getElementById('imagePreview').src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- Seed DB Function (50 Myths) ---
+        window.seedDatabase = async () => {
+            if(!confirm("আপনি কি নিশ্চিত ডাটাবেস রিসেট করে ৫০টি নতুন মিথ যুক্ত করতে চান? এটি করতে একটু সময় লাগতে পারে।")) return;
+            
+            const FIFTY_MYTHS = [
+                { title: "জোড়া কলা খেলে যমজ বাচ্চা হয়", description: "অনেকের ধারণা, কেউ যদি জোড়া লাগানো কলা খায়, তবে ভবিষ্যতে তার যমজ সন্তান হবে।", category: "খাবার", image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "রাতে ঘর ঝাড়ু দিলে লক্ষ্মী চলে যায়", description: "রাতে ঘর ঝাড়ু দিলে নাকি ঘরের বরকত কমে যায়।", category: "সংসার", image: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "কাক ডাকলে মেহমান আসে", description: "বাড়ির চালে বা বারান্দায় কাক ডাকলে সেদিন বাড়িতে অতিথি আসে।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1555663784-5a91ae19f94d?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "পরীক্ষার আগে ডিম খাওয়া অশুভ", description: "ডিম খেলে পরীক্ষায় 'গোল্লা' পাবে এই ভয়ে ডিম এড়িয়ে চলা।", category: "শিক্ষা", image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "দাঁত পড়লে ইঁদুরের গর্তে ফেলা", description: "দাঁত ইঁদুরের গর্তে ফেললে নতুন দাঁত মজবুত হয় বলে বিশ্বাস করা হয়।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1599687267812-35c05ff70ee9?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "হাতের তালু চুলকালে টাকা আসে", description: "ডান হাতের তালু চুলকালে টাকা আসে, বাম হাতে খরচ হয়।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "বিড়াল রাস্তা পার হলে যাত্রা অশুভ", description: "বিড়াল রাস্তা কাটলে অনেকে যাত্রা বাতিল করেন বা অপেক্ষা করেন।", category: "যাত্রা", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "দুধ ও আনারস একসাথে খেলে বিষ", description: "দুধ এবং আনারস একসাথে খেলে বিষক্রিয়া হয় - এটি ভুল ধারণা।", category: "খাবার", image: "https://images.unsplash.com/photo-1589820296156-2454bb8a6d54?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "নিশি ডাক", description: "রাতে কেউ নাম ধরে তিনবার না ডাকলে সাড়া দিতে নেই।", category: "ভৌতিক", image: "https://images.unsplash.com/photo-1509557965875-b88c97052f0e?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "মাছের মাথা খেলে বুদ্ধি বাড়ে", description: "শিশুদের মাছের মাথা খাওয়ানো হয় মেধা বিকাশের আশায়।", category: "খাবার", image: "https://images.unsplash.com/photo-1615141982880-1313d443a3ec?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে নখ কাটতে নেই", description: "রাতে নখ কাটলে অমঙ্গল হয় বলে মনে করা হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "শূন্য ঘরে কাঁচি চালালে ঝগড়া", description: "অকারণে কাঁচি চালালে পরিবারে ঝগড়া বাধে।", category: "সংসার", image: "https://images.unsplash.com/photo-1533090623907-7b3b44840b3c?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "আয়না ভাঙলে ৭ বছর দুর্ভাগ্য", description: "আয়না ভাঙা অশুভ লক্ষণ হিসেবে দেখা হয়।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1516644026850-8b066f20486c?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "খাওয়ার সময় বিষম খাওয়া", description: "কেউ আপনাকে স্মরণ করছে বলে মনে করা হয়।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "বাম চোখের পাতা লাফালে বিপদ", description: "বাম চোখ লাফালে বিপদ, ডান চোখে ভালো খবর।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1563236756-3f04494916a2?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "তিন রাস্তার মোড়ে ভূত থাকে", description: "তিন রাস্তার মোড়ে খারাপ বাতাস বা আত্মা থাকে।", category: "ভৌতিক", image: "https://images.unsplash.com/photo-1447014421976-7fec21d26d86?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "কারও উপর দিয়ে ডিঙ্গিয়ে যাওয়া", description: "এতে উচ্চতা বৃদ্ধি বন্ধ হয়ে যায় বলে বিশ্বাস।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1493612276216-ee3925520721?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "সূর্যাস্তের সময় ঘুমানো মানা", description: "গোধূলি বেলায় ঘুমালে শরীর খারাপ হয় ও অলক্ষ্মী আসে।", category: "স্বাস্থ্য", image: "https://images.unsplash.com/photo-1455642305367-68834a1da7ab?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে গাছের নিচে যাওয়া মানা", description: "রাতে গাছে ভূত থাকে বলে বিশ্বাস করা হয়।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1463130456064-5a2d60b73c46?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "ভাঙা আয়নায় মুখ দেখা", description: "এতে ভাগ্য খারাপ হয় বা চেহারার শ্রী নষ্ট হয়।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1590502160462-2115c3d23158?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "বটগাছে যক্ষ থাকে", description: "বটগাছে যক্ষ বা ধনপিশাচ থাকে যে গুপ্তধন পাহারা দেয়।", category: "ভৌতিক", image: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে সুচ বা নুন দেওয়া মানা", description: "রাতে হাতে সুচ বা নুন দিলে সম্পর্ক নষ্ট হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1628102491629-778571d893a3?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "হাঁচি দিলে যাত্রা বিরতি", description: "যাত্রার শুরুতে হাঁচি দিলে কিছুক্ষণ বসতে হয়।", category: "যাত্রা", image: "https://images.unsplash.com/photo-1585250003058-2947262c5b3c?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "প্লেটে খাবার রেখে উঠলে ঋণ", description: "খাবার পাতে রেখে উঠলে ঋণী হতে হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1549488391-2a694d9136dc?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "উপুড় হয়ে শুলে পেট ব্যথা", description: "উপুড় হয়ে শুলে পেটে ব্যথা বা অমঙ্গল হয়।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1542044896530-05d85be9b11a?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "পরীক্ষার আগে চুল কাটা মানা", description: "পরীক্ষার আগে চুল কাটলে পড়া ভুলে যায়।", category: "শিক্ষা", image: "https://images.unsplash.com/photo-1621645541997-c25cb73a5d09?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "শকুন বাড়ির চালে বসা", description: "শকুন চালে বসলে কারো মৃত্যুর আশঙ্কা থাকে।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1515264366635-c89c8a984021?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "গায়ে নুন ছিটিয়ে দেওয়া", description: "নুন ছিটিয়ে দিলে মারামারি হওয়ার সম্ভাবনা থাকে।", category: "সংসার", image: "https://images.unsplash.com/photo-1518110925418-8422956d5ae7?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "সন্ধ্যায় চুল আচড়ানো", description: "সন্ধ্যায় চুল খোলা রাখলে অশুভ দৃষ্টি পড়ে।", category: "সংসার", image: "https://images.unsplash.com/photo-1522337360705-8754d79770d2?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "মৃত ব্যক্তির নাম বারবার নেওয়া", description: "বারবার নাম নিলে মৃত ব্যক্তির আত্মা কষ্ট পায়।", category: "ভৌতিক", image: "https://images.unsplash.com/photo-1596767356247-f421f66c91e0?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "হাঁড়িতে ভাত খাওয়া", description: "হাঁড়িতে খেলে বিয়ের দিন বৃষ্টি হয়।", category: "খাবার", image: "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "পা নাচালে লক্ষ্মী চলে যায়", description: "বসে পা নাচালে ধন-সম্পদ কমে যায়।", category: "সংসার", image: "https://images.unsplash.com/photo-1516475429286-465d815a0df4?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রংধনুতে আঙুল দিলে আঙুল পচে", description: "রংধনুর দিকে আঙুল তাক করলে আঙুল পচে যায়।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "কালো বিড়াল ডাইনি", description: "কালো বিড়ালকে ডাইনির রূপ বা অশুভ ভাবা হয়।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "প্লেট চাটলে বৃষ্টি হয়", description: "প্লেট চেটে খেলে নিজের বিয়েতে বৃষ্টি হয়।", category: "খাবার", image: "https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "ঝাঁড়ু গায়ে লাগলে থুতু দেওয়া", description: "পায়ে ঝাঁড়ু লাগলে থুতু না দিলে শরীর শুকিয়ে যায়।", category: "সংসার", image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "জিহ্বায় কামড় লাগা", description: "খাওয়ার সময় জিহ্বায় কামড় লাগলে কেউ গালি দিচ্ছে।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1579165466741-7f35a4755657?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "হেঁচকি উঠলে কেউ মিস করছে", description: "হেঁচকি উঠলে মনে করা হয় কেউ আপনাকে মনে করছে।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1599447421416-6413529615d4?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "ঘরে প্রজাপতি আসা", description: "ঘরে প্রজাপতি আসলে বিয়ে বা মেহমান আসার সম্ভাবনা।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1473615437882-97217525f238?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে কুকুর কান্না করা", description: "রাতে কুকুর কান্না করলে এলাকায় কারো মৃত্যু হতে পারে।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "গলায় হাত দিলে গলগণ্ড", description: "নিজের গলায় হাত দিলে ফুঁ দিতে হয়, না হলে গলগণ্ড হয়।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "মাথায় হাত দিয়ে বসা", description: "মাথায় হাত দিয়ে বসলে কপাল খারাপ হয় বা মাথাব্যথা হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "বালিশে বসলে ফোঁড়া হয়", description: "বালিশের উপর বসলে নাকি পশ্চাদ্দেশে ফোঁড়া হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "ঘরে ছাতা মেললে বৃদ্ধি কমে", description: "ঘরের ভেতর ছাতা মেললে উচ্চতা বাড়ে না বা অমঙ্গল হয়।", category: "সংসার", image: "https://images.unsplash.com/photo-1534068590799-09895a701e3e?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে শিস দেওয়া", description: "রাতে শিস দিলে সাপ বা ভূত আসে।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1520699049698-acd2fcc51056?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "সকালে বাকি দেওয়া মানা", description: "দোকানিরা সকালে প্রথম কাস্টমারকে বাকি দিলে সারা দিন খারাপ যায়।", category: "ভাগ্য", image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রাতে টাকা ধার দেওয়া", description: "রাতে টাকা ধার দিলে ঘরের লক্ষ্মী চলে যায়।", category: "সংসার", image: "https://images.unsplash.com/photo-1621981386629-94d336c80212?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "পিঁপড়া খেলে সাঁতার শেখা", description: "পিঁপড়া খেলে নাকি তাড়াতাড়ি সাঁতার শেখা যায়।", category: "খাবার", image: "https://images.unsplash.com/photo-1605648916319-cf082f7524a1?auto=format&fit=crop&q=80&w=600", isSlider: false },
+                { title: "রোদে বৃষ্টি হলে শিয়ালের বিয়ে", description: "রোদ ও বৃষ্টি একসাথে হলে শিয়ালের বিয়ে হয় বলে মজা করা হয়।", category: "প্রকৃতি", image: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&q=80&w=600", isSlider: true },
+                { title: "খাট থেকে বাচ্চা পড়া", description: "বাচ্চা খাট থেকে পড়লে নাকি তাড়াতাড়ি বড় হয়।", category: "শারীরিক", image: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=600", isSlider: false }
+            ];
+
+            const batch = writeBatch(db);
+            const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'myths');
+            
+            // Note: Batch limit is 500 operations, so 50 is fine.
+            FIFTY_MYTHS.forEach(myth => {
+                const docRef = doc(collectionRef);
+                batch.set(docRef, myth);
+            });
+
+            try {
+                await batch.commit();
+                alert("ডাটাবেসে ৫০টি মিথ সফলভাবে যুক্ত করা হয়েছে!");
+            } catch (e) {
+                console.error("Seeding failed:", e);
+                alert("ডাটা যুক্ত করা সম্ভব হয়নি। কনসোলে এরর চেক করুন।");
+            }
+        };
+
+        // Init UI
+        updateAuthUI();
+        lucide.createIcons();
+    </script>
+</body>
 </html>
